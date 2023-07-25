@@ -7,6 +7,10 @@ class User {
     username?: string;
     userId: number;
 
+    current_test_errors?: number;
+    current_test_passed_count?: number;
+    current_test_all_count?: number;
+
     constructor({ id, sowDescription, name, username, userId }: {
         id: number,
         sowDescription?: boolean,

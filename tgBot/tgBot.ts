@@ -22,79 +22,98 @@ class TgBot {
 
         this.bot.on('callback_query', this.callbackQuery.bind(this));
         this.bot.on('message', this.gotMessage.bind(this));
-        console.log('Tg bot started');
     }
 
     async callbackQuery(query: TelegramBot.CallbackQuery) {
-        const chatId = query.message.chat.id;
-        let data = query.data.split('_');
-        if (data.length != 2) {
-            return;
-        }
-
-        let wordId = parseInt(data[0]), order = data[1] === 'True';
-        await this.dbWorker.updateWordValue(wordId, order);
-
-        let word = await this.dbWorker.getWordUserList(chatId);
-
-        if (!word) {
-            return await this.bot.sendMessage(chatId, "Test ended");
-        }
-
-        await this.dbWorker.removeWordUserList(chatId, word);
-        let wordFull = await this.dbWorker.getWord(word);
-        let mesg = ''
-        if (Math.random() > 0.5) {
-            mesg = `${wordFull.original}:<span class="tg-spoiler">${wordFull.translate}</span>\n<span class="tg-spoiler">${wordFull.description}</span>`;
-        } else {
-            mesg = `${wordFull.translate}:<span class="tg-spoiler">${wordFull.original}</span>\n<span class="tg-spoiler">${wordFull.description}</span>`;
-        }
-
-        await this.bot.sendMessage(chatId, mesg, {
-            parse_mode: "HTML", reply_markup: {
-                inline_keyboard: [
-                    [
-                        {
-                            text: "True",
-                            callback_data: `${wordFull.id}_True`
-                        },
-                        {
-                            text: "False",
-                            callback_data: `${wordFull.id}_False`
-                        },
-
-                    ]
-                ]
+        try {
+            const chatId = query.message.chat.id;
+            let data = query.data.split('_');
+            if (data.length != 2) {
+                return;
             }
-        });
+
+            if (!query.message.reply_markup) {
+                return;
+            }
+
+            let counts = query.message.text.split(']')[0].replace('[', '').split('/');
+            let currentNumber = parseInt(counts[0]) + 1, allCount = counts[1];
+            if (!currentNumber || !allCount) {
+                return;
+            }
+
+            let wordId = parseInt(data[0]), order = data[1] === 'True';
+
+            await this.bot.editMessageText((query.message.text + (order ? '✅' : '❌')), { chat_id: chatId, message_id: query.message.message_id });
+            await this.dbWorker.updateWordValue(wordId, order);
+
+            let { word, current_test_errors, current_test_all_count } = await this.dbWorker.getWordUserList(chatId) || {};
+
+            if (!word) {
+                return await this.bot.sendMessage(chatId, `Test ended\nErrors:${current_test_errors + 1}/${current_test_all_count + 1}`);
+            }
+
+            await this.dbWorker.removeWordUserList(chatId, word, order);
+            let wordFull = await this.dbWorker.getWord(word);
+            let mesg = ''
+            if (Math.random() > 0.5) {
+                mesg = `[${currentNumber}/${allCount}]${wordFull.original}:<span class="tg-spoiler">${wordFull.translate}</span>\n<span class="tg-spoiler">${wordFull.description}</span>`;
+            } else {
+                mesg = `[${currentNumber}/${allCount}]${wordFull.translate}:<span class="tg-spoiler">${wordFull.original}</span>\n<span class="tg-spoiler">${wordFull.description}</span>`;
+            }
+
+            await this.bot.sendMessage(chatId, mesg, {
+                parse_mode: "HTML", reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: "True",
+                                callback_data: `${wordFull.id}_True`
+                            },
+                            {
+                                text: "False",
+                                callback_data: `${wordFull.id}_False`
+                            },
+
+                        ]
+                    ]
+                }
+            });
+        } catch (ex) {
+            console.log('callbackQuery', ex);
+        }
     }
 
     async startTest(chatId: number, count: number) {
-        let wordList = await this.dbWorker.getWordSet(count, chatId);
-        if (wordList.length === 0) {
-            await this.bot.sendMessage(chatId, "You have no words in your dictionary");
-            return;
-        }
-        let first = wordList[0];
-        await this.dbWorker.setUserWordSet(chatId, wordList.slice(1).map(e => e.id));
-        let mesg = `${first.original}:<span class="tg-spoiler">${first.translate}</span>\n<span class="tg-spoiler">${first.description}</span>`;
-        await this.bot.sendMessage(chatId, mesg, {
-            parse_mode: "HTML", reply_markup: {
-                inline_keyboard: [
-                    [
-                        {
-                            text: "True",
-                            callback_data: `${first.id}_True`
-                        },
-                        {
-                            text: "False",
-                            callback_data: `${first.id}_False`
-                        },
-
-                    ]
-                ]
+        try {
+            let wordList = await this.dbWorker.getWordSet(count, chatId);
+            if (wordList.length === 0) {
+                await this.bot.sendMessage(chatId, "You have no words in your dictionary");
+                return;
             }
-        });
+            let first = wordList[0];
+            await this.dbWorker.setUserWordSet(chatId, wordList.slice(1).map(e => e.id),);
+            let mesg = `[${1}/${count}]:${first.original}:<span class="tg-spoiler">${first.translate}</span>\n<span class="tg-spoiler">${first.description}</span>`;
+            await this.bot.sendMessage(chatId, mesg, {
+                parse_mode: "HTML", reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: "True",
+                                callback_data: `${first.id}_True`
+                            },
+                            {
+                                text: "False",
+                                callback_data: `${first.id}_False`
+                            },
+
+                        ]
+                    ]
+                }
+            });
+        } catch (ex) {
+            console.log('startTest', ex);
+        }
     }
 
     async gotMessage(msg: TelegramBot.Message) {
@@ -116,12 +135,12 @@ class TgBot {
         }
 
         switch (command) {
-            case "/webToken":
+            case "/web_token":
                 if (user.webhash) {
                     await this.bot.sendMessage(chatId, 'Token:`' + user.webhash + '`', { parse_mode: "MarkdownV2" });
                     break;
                 }
-            case "/changeWebToken":
+            case "/change_web_token":
                 let token = genRandonString(20);
                 await this.dbWorker.setUserSession(chatId, token);
                 await this.bot.sendMessage(chatId, 'Token:`' + token + '`', { parse_mode: "MarkdownV2" });
@@ -149,3 +168,9 @@ class TgBot {
 }
 
 export { TgBot };
+
+// daily - daily test
+// test - 10 questions by default, set count like /test 25
+// web_token - get web token
+// change_web_token - chanege web token
+

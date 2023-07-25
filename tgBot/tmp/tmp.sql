@@ -13,6 +13,10 @@ CREATE TABLE botuser (
     username TEXT,
     userId INTEGER,
     sowDescription BOOLEAN DEFAULT true,
+    
+    current_test_errors INTEGER,
+    current_test_passed_count INTEGER,
+    current_test_all_count INTEGER,
     UNIQUE(webHash)
 );
 
@@ -30,7 +34,7 @@ CREATE TABLE word(
 --alters
 
 
-ALTER TABLE botuser ADD COLUMN webHash TEXT;
+ALTER TABLE botuser ADD COLUMN current_test_all_count INTEGER;
 ALTER TABLE botuser ADD UNIQUE (webHash);
 ALTER TABLE botuser ALTER COLUMN currentWordSet [SET DATA] TYPE INTEGER[];
 DROP TABLE word;

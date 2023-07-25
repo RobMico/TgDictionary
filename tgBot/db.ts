@@ -63,7 +63,7 @@ class DbWorker {
     }
 
     async setUserWordSet(user: number, wordIds: number[]) {
-        await this.client.query("UPDATE botuser SET currentWordSet=$1 WHERE id=$2;", [wordIds, user]);
+        await this.client.query("UPDATE botuser SET currentWordSet=$1, current_test_errors=0, current_test_passed_count=0, current_test_all_count=$3 WHERE id=$2;", [wordIds, user, wordIds.length]);
     }
 
     async getWord(id: number): Promise<Word> {
@@ -83,18 +83,18 @@ class DbWorker {
         }
     }
 
-    async removeWordUserList(userId: number, wordId: number) {
-        await this.client.query('UPDATE botuser SET currentWordSet = array_remove(currentWordSet, $1) WHERE id=$2;', [wordId, userId]);
+    async removeWordUserList(userId: number, wordId: number, order?: boolean) {
+        await this.client.query(`UPDATE botuser SET currentWordSet = array_remove(currentWordSet, $1), ${order ? '' : 'current_test_errors=current_test_errors+1, '}current_test_passed_count=current_test_passed_count+1 WHERE id=$2;`, [wordId, userId]);
     }
 
     async getWordUserList(userId: number) {
-        let res = await this.client.query('SELECT currentWordSet[1] as word FROM botuser WHERE id=$1;', [userId]);
+        let res = await this.client.query('SELECT currentWordSet[1] as word, current_test_errors, current_test_all_count  FROM botuser WHERE id=$1;', [userId]);
         if (res.rows.length === 0) {
             console.log('EX no such user', [userId]);
             return null;
         }
 
-        return res.rows[0].word;
+        return res.rows[0];
     }
 
 
