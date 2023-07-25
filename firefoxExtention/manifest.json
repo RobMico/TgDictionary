@@ -1,0 +1,28 @@
+{
+    "manifest_version": 2,
+    "name": "EnDictionary",
+    "version": "1.0",
+    "description": "Save words from translate to dictionary",
+    "icons": {
+        "48": "icons/ico48.png"
+    },
+    "permissions": [
+        "storage",
+        "webRequest", 
+        "webRequestBlocking",
+        "<all_urls>"
+    ],
+    "content_scripts": [
+        {
+            "matches": [
+                "https://translate.google.com/*"
+            ],
+            "js": [
+                "content_scripts/saveWord.js"
+            ]
+        }
+    ],
+    "browser_action": {
+        "default_popup": "popup/popup.html"
+    }
+}
