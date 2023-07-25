@@ -9,6 +9,9 @@ CREATE TABLE botuser (
     id INTEGER PRIMARY KEY,
     currentWordSet INTEGER[],
     webHash TEXT,
+    name TEXT,
+    username TEXT,
+    userId INTEGER,
     sowDescription BOOLEAN DEFAULT true,
     UNIQUE(webHash)
 );
@@ -23,17 +26,6 @@ CREATE TABLE word(
     FOREIGN KEY (userId) REFERENCES botuser (id),
     UNIQUE(userId, original)
 );
-
-CREATE TABLE user_web_sessions(
-  id SERIAL PRIMARY KEY,
-  hash TEXT NOT NULL,
-  userid INTEGER,
-  submitCode INTEGER,
-  status TEXT DEFAULT 'awaited',
-  FOREIGN KEY (userid) REFERENCES botuser (id),
-  UNIQUE (hash)
-);
-
 
 --alters
 

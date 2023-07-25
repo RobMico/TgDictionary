@@ -99,7 +99,7 @@ class TgBot {
 
     async gotMessage(msg: TelegramBot.Message) {
         let command = null, data = null;
-        if (msg.entities.length != 0) {
+        if (msg.entities && msg.entities.length != 0) {
             if (msg.entities[0].type === 'bot_command') {
                 command = msg.text.slice(msg.entities[0].offset, msg.entities[0].offset + msg.entities[0].length);
                 data = msg.text.slice(msg.entities[0].offset + msg.entities[0].length);
@@ -109,7 +109,7 @@ class TgBot {
         const chatId = msg.chat.id;
         let user = await this.dbWorker.getUser(chatId);
         if (!user) {
-            let user = new User(chatId);
+            let user = new User({ id: chatId, userId: msg.from.id, username: msg.from.username, name: [msg.from.first_name, msg.from.last_name].join(' ') });
             await this.dbWorker.insertUser(user);
             await this.bot.sendMessage(chatId, 'Hi, to add word just write it in such format:`word-translation-description`');
             return;
@@ -124,7 +124,7 @@ class TgBot {
             case "/changeWebToken":
                 let token = genRandonString(20);
                 await this.dbWorker.setUserSession(chatId, token);
-                await this.bot.sendMessage(chatId, 'Token:`' + token + '`');
+                await this.bot.sendMessage(chatId, 'Token:`' + token + '`', { parse_mode: "MarkdownV2" });
                 break;
             case "/daily":
                 await this.startTest(chatId, 100);

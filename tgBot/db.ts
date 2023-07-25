@@ -44,7 +44,8 @@ class DbWorker {
     }
 
     async insertUser(user: User) {
-        await this.client.query("INSERT INTO botuser(id, sowDescription) VALUES ($1, $2);", [user.id, user.sowdescription]);
+        await this.client.query("INSERT INTO botuser(id, sowDescription, name, username, userId) VALUES ($1, $2, $3, $4, $5);",
+            [user.id, user.sowdescription, user.name, user.username, user.userId]);
     }
 
     async insertWord(word: Word) {
@@ -52,6 +53,7 @@ class DbWorker {
             await this.client.query("INSERT INTO word(userId, original, translate, description, value) VALUES ($1, $2, $3, $4, $5);",
                 [word.userId, word.original, word.translate, word.description, word.value]);
         } catch (ex) {
+            console.log(ex);
         }
     }
 
@@ -100,12 +102,12 @@ class DbWorker {
         await this.client.query("UPDATE botuser SET webHash=$1 WHERE id=$2;", [accessHash, userId]);
     }
 
-    async getSessionUser(hash: string): Promise<number> {
-        let res = await this.client.query("SELECT id FROM botuser WHERE webHash=$1;", [hash]);
+    async getSessionUser(hash: string): Promise<User> {
+        let res = await this.client.query("SELECT * FROM botuser WHERE webHash=$1;", [hash]);
         if (res.rows.length === 0) {
             return null;
         }
-        return res.rows[0].id;
+        return res.rows[0];
     }
 }
 
