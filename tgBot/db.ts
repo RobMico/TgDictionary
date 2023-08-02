@@ -6,11 +6,11 @@ class DbWorker {
     client: Client;
     async start({ host, port, database, user, password }: { host: string, port: number, database: string, user: string, password: string }) {
         this.client = new Client({
-            host: "localhost",
-            port: 5432,
-            database: 'enlearn',
-            user: 'entgbot',
-            password: 'Qwerty'
+            host: host,
+            port: port,
+            database: database,
+            user: user,
+            password: password
         });
         await this.client.connect();
     }
@@ -58,8 +58,9 @@ class DbWorker {
     }
 
     async getWordSet(count: number, user: number): Promise<Word[]> {
-        let res = await this.client.query('SELECT * FROM word WHERE userId=$1 ORDER BY random()/power((value+1), 5/3) LIMIT $2;', [user, count]);
+        let res = await this.client.query('SELECT * FROM word WHERE userId=$1 AND value>0 ORDER BY random()/power((value+1), 5/3) LIMIT $2;', [user, count]);
         return res.rows;
+        //'SELECT * FROM word WHERE value>0 ORDER BY random()/power((value+1), 5/3) LIMIT $2;'
     }
 
     async setUserWordSet(user: number, wordIds: number[]) {
