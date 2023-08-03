@@ -32,11 +32,25 @@ try {
             let tmp = description.querySelectorAll('div>div>div>div>div>div>div>div')[1];
             RESULT_DESCRIPTION = tmp.innerText;
         } catch (ex) {
-
+            if (!RESULT_DESCRIPTION) {
+                try {
+                    description = translate.querySelectorAll('span>span>span')[0];
+                    let translations = translate.querySelectorAll('span>span>span');
+                    RESULT_DESCRIPTION = '';
+                    for (let i = 1; i < translations.length - 1; i++) {
+                        let word = translations[i].innerText;
+                        if (word) {
+                            RESULT_DESCRIPTION += word + '/';
+                        }
+                    }
+                    RESULT_DESCRIPTION = RESULT_DESCRIPTION.slice(0, -1);
+                } catch {
+                }
+            }
         }
-
+        
         try {
-            
+
             let { apiHash } = (await browser.storage.local.get('apiHash')) || {};
             let { saveWordLink } = (await browser.storage.local.get('saveWordLink')) || {};
             if (!apiHash || !saveWordLink) {
@@ -45,7 +59,7 @@ try {
 
             let res = await fetch(saveWordLink, {
                 method: "POST",
-                
+
                 body: JSON.stringify({
                     original: RESULT_WORD,
                     translate: RESULT_TRANSLATE,
@@ -56,7 +70,7 @@ try {
                     'accessHash': apiHash
                 }
             });
-            
+
             if (res.ok) {
                 mybtn.innerText = "Ok";
                 setTimeout(() => {
